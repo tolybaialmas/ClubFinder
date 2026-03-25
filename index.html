@@ -1,0 +1,1990 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Club Finder — Найди место, играй сейчас</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:ital,wght@0,300;0,400;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root{
+  --bg:#030810;--bg2:#060f1c;--bg3:#0a1828;--card:#081220;
+  --neon:#00ffc3;--blue:#00aaff;--red:#ff2d55;--gold:#ffaa00;--purple:#c084fc;
+  --text:#b0d4ee;--muted:#3a6080;--border:rgba(0,255,195,0.12);
+  --zone-std:#00aaff;--zone-vip:#c084fc;--zone-ps:#ff6b35;--zone-vr:#00ffc3;--zone-priv:#ffaa00;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:'Exo 2',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;}
+body::after{content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.04) 3px,rgba(0,0,0,0.04) 4px);
+  pointer-events:none;z-index:9998;}
+
+/* ── HEADER ── */
+header{
+  position:fixed;top:0;left:0;right:0;z-index:500;
+  height:62px;padding:0 28px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(3,8,16,0.94);border-bottom:1px solid var(--border);
+  backdrop-filter:blur(20px);
+}
+.logo{font-family:'Share Tech Mono',monospace;font-size:19px;color:var(--neon);
+  text-shadow:0 0 14px var(--neon);letter-spacing:3px;}
+.logo em{color:var(--blue);font-style:normal;}
+.nav{display:flex;gap:3px;}
+.nb{background:none;border:1px solid transparent;color:var(--muted);
+  font-family:'Exo 2',sans-serif;font-size:12px;font-weight:600;letter-spacing:1.5px;
+  padding:7px 14px;cursor:pointer;border-radius:4px;text-transform:uppercase;transition:.2s;}
+.nb:hover,.nb.on{color:var(--neon);border-color:var(--border);background:rgba(0,255,195,0.06);text-shadow:0 0 8px var(--neon);}
+.nb.cta{border-color:var(--neon)!important;color:var(--neon)!important;background:rgba(0,255,195,0.07)!important;}
+
+/* ── PAGES ── */
+.page{display:none;padding-top:62px;}
+.page.active{display:block;}
+
+/* ── HERO ── */
+.hero{
+  min-height:100vh;display:flex;flex-direction:column;
+  justify-content:center;align-items:center;text-align:center;
+  padding:80px 24px 60px;position:relative;overflow:hidden;
+}
+.hero-bg{
+  position:absolute;inset:0;
+  background-image:linear-gradient(rgba(0,255,195,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,195,.03) 1px,transparent 1px);
+  background-size:50px 50px;animation:gd 25s linear infinite;
+}
+@keyframes gd{to{transform:translateY(50px);}}
+.hero-glow{position:absolute;width:700px;height:700px;
+  background:radial-gradient(circle,rgba(0,255,195,.07) 0%,transparent 65%);
+  top:50%;left:50%;transform:translate(-50%,-50%);animation:br 5s ease-in-out infinite;}
+@keyframes br{0%,100%{transform:translate(-50%,-50%) scale(1);}50%{transform:translate(-50%,-50%) scale(1.1);}}
+.hero-tag{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:5px;color:var(--neon);
+  margin-bottom:18px;opacity:0;animation:ri .8s .1s forwards;}
+.hero h1{font-size:clamp(36px,7vw,86px);font-weight:900;line-height:1;
+  margin-bottom:20px;opacity:0;animation:ri .8s .3s forwards;}
+.hero h1 .w1{color:#fff;}.hero h1 .w2{color:var(--neon);text-shadow:0 0 50px rgba(0,255,195,.5);display:block;}
+.hero-sub{font-size:16px;color:var(--muted);max-width:500px;line-height:1.7;margin-bottom:42px;
+  opacity:0;animation:ri .8s .5s forwards;}
+@keyframes ri{from{opacity:0;transform:translateY(26px);}to{opacity:1;transform:none;}}
+.hero-ctas{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;opacity:0;animation:ri .8s .7s forwards;}
+.btn-p{background:var(--neon);color:#000;border:none;font-family:'Share Tech Mono',monospace;
+  font-size:12px;letter-spacing:2px;padding:14px 32px;cursor:pointer;border-radius:4px;
+  text-transform:uppercase;transition:.25s;box-shadow:0 0 26px rgba(0,255,195,.35);}
+.btn-p:hover{background:#fff;box-shadow:0 0 48px rgba(0,255,195,.55);transform:translateY(-2px);}
+.btn-o{background:transparent;color:var(--neon);border:1px solid var(--neon);
+  font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:2px;
+  padding:14px 32px;cursor:pointer;border-radius:4px;text-transform:uppercase;transition:.25s;}
+.btn-o:hover{background:rgba(0,255,195,.08);transform:translateY(-2px);}
+
+/* STAT BAR */
+.sbar{display:flex;justify-content:center;gap:52px;flex-wrap:wrap;padding:26px 28px;
+  background:rgba(6,15,28,.92);border-top:1px solid var(--border);border-bottom:1px solid var(--border);}
+.stt{text-align:center;}
+.stn{font-family:'Share Tech Mono',monospace;font-size:32px;color:var(--neon);
+  text-shadow:0 0 16px var(--neon);display:block;}
+.stl{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);}
+.ldot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--neon);
+  margin-right:5px;animation:bl 1.4s infinite;}
+@keyframes bl{0%,100%{opacity:1;box-shadow:0 0 6px var(--neon);}50%{opacity:.25;box-shadow:none;}}
+
+/* ── WRAP ── */
+.wrap{max-width:1300px;margin:0 auto;padding:68px 28px;}
+.stitle{font-family:'Share Tech Mono',monospace;font-size:24px;color:#fff;letter-spacing:2px;margin-bottom:6px;}
+.stitle span{color:var(--neon);}
+.ssub{font-size:13px;color:var(--muted);letter-spacing:1px;margin-bottom:32px;}
+
+/* SEARCH */
+.srow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px;}
+.si,.ss{background:var(--card);border:1px solid var(--border);color:var(--text);
+  font-family:'Exo 2',sans-serif;font-size:13px;padding:10px 14px;border-radius:4px;outline:none;transition:.2s;}
+.si{flex:1;min-width:180px;}.si:focus,.ss:focus{border-color:var(--neon);}
+.ss option{background:var(--bg2);}
+
+/* CLUBS GRID */
+.cg{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:20px;}
+.cc{background:var(--card);border:1px solid var(--border);border-radius:9px;overflow:hidden;
+  cursor:pointer;transition:all .28s;position:relative;}
+.cc:hover{border-color:rgba(0,255,195,.35);transform:translateY(-5px);box-shadow:0 22px 58px rgba(0,255,195,.08);}
+.ci{height:130px;display:flex;align-items:center;justify-content:center;font-size:52px;
+  position:relative;overflow:hidden;background:linear-gradient(135deg,#080f1a,#0d1e30);}
+.ci::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,transparent 40%,var(--card));}
+.cbadge{position:absolute;top:10px;right:10px;z-index:2;padding:3px 9px;border-radius:3px;
+  font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;}
+.ob{background:rgba(0,255,195,.14);color:var(--neon);border:1px solid var(--neon);}
+.cb{background:rgba(255,45,85,.12);color:var(--red);border:1px solid var(--red);}
+.cb2{padding:18px;}
+.cname{font-family:'Share Tech Mono',monospace;font-size:14px;color:#fff;margin-bottom:7px;letter-spacing:1px;}
+.cmeta{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-bottom:14px;}
+
+/* ZONE CHIPS on club card */
+.zone-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+.zchip{
+  display:flex;align-items:center;gap:5px;
+  padding:5px 10px;border-radius:4px;font-size:11px;font-weight:700;
+  letter-spacing:.5px;text-transform:uppercase;border:1px solid;
+  transition:all .2s;cursor:pointer;
+}
+.zchip:hover{filter:brightness(1.3);}
+
+/* ZONE TYPES */
+.zt-std{color:var(--zone-std);border-color:var(--zone-std);background:rgba(0,170,255,.08);}
+.zt-vip{color:var(--zone-vip);border-color:var(--zone-vip);background:rgba(192,132,252,.08);}
+.zt-ps{color:var(--zone-ps);border-color:var(--zone-ps);background:rgba(255,107,53,.08);}
+.zt-vr{color:var(--zone-vr);border-color:var(--zone-vr);background:rgba(0,255,195,.08);}
+.zt-priv{color:var(--zone-priv);border-color:var(--zone-priv);background:rgba(255,170,0,.08);}
+
+.cfoot{display:flex;justify-content:space-between;align-items:center;
+  padding-top:12px;border-top:1px solid var(--border);}
+.cprice-range{font-family:'Share Tech Mono',monospace;font-size:14px;color:var(--neon);}
+.cprice-range small{font-size:10px;color:var(--muted);font-family:'Exo 2',sans-serif;}
+.bbtn{background:rgba(0,255,195,.1);border:1px solid var(--neon);color:var(--neon);
+  font-family:'Exo 2',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;
+  padding:7px 16px;cursor:pointer;border-radius:3px;text-transform:uppercase;transition:.2s;}
+.bbtn:hover{background:var(--neon);color:#000;}
+.bbtn:disabled{opacity:.3;cursor:not-allowed;}
+
+/* ── CLUB DETAIL MODAL ── */
+.overlay{display:none;position:fixed;inset:0;z-index:600;
+  background:rgba(0,0,0,.9);backdrop-filter:blur(12px);
+  justify-content:center;align-items:flex-start;padding:20px;overflow-y:auto;}
+.overlay.show{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+  width:100%;max-width:860px;margin:auto;animation:pi .3s ease;}
+@keyframes pi{from{opacity:0;transform:scale(.93) translateY(16px);}to{opacity:1;transform:none;}}
+.mhead{padding:20px 24px;border-bottom:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+.mtitle{font-family:'Share Tech Mono',monospace;font-size:17px;color:#fff;letter-spacing:1px;}
+.mclose{background:none;border:1px solid var(--border);color:var(--muted);
+  width:32px;height:32px;border-radius:4px;cursor:pointer;font-size:16px;
+  display:flex;align-items:center;justify-content:center;transition:.2s;flex-shrink:0;}
+.mclose:hover{border-color:var(--red);color:var(--red);}
+.mbody{padding:24px;}
+
+/* ZONE TABS inside modal */
+.zone-tabs{display:flex;gap:0;flex-wrap:wrap;margin-bottom:24px;
+  border-bottom:1px solid var(--border);}
+.ztab{background:none;border:none;border-bottom:2px solid transparent;
+  color:var(--muted);font-family:'Exo 2',sans-serif;font-size:12px;font-weight:600;
+  letter-spacing:1px;padding:10px 18px;cursor:pointer;text-transform:uppercase;
+  transition:.2s;margin-bottom:-1px;display:flex;align-items:center;gap:6px;}
+.ztab.on{border-bottom-color:currentColor;}
+
+/* ZONE DETAIL */
+.zone-detail{display:none;}.zone-detail.on{display:block;}
+.zone-header{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  flex-wrap:wrap;gap:12px;margin-bottom:20px;
+  padding:16px;border-radius:7px;border:1px solid;
+}
+.zh-info{}
+.zh-name{font-family:'Share Tech Mono',monospace;font-size:16px;margin-bottom:6px;}
+.zh-desc{font-size:13px;color:var(--muted);line-height:1.5;}
+.zh-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.ztag{font-size:10px;padding:3px 8px;border-radius:3px;background:rgba(255,255,255,.06);color:var(--text);letter-spacing:.5px;}
+.zh-price{text-align:right;flex-shrink:0;}
+.zh-price-n{font-family:'Share Tech Mono',monospace;font-size:22px;font-weight:700;}
+.zh-price-l{font-size:10px;color:var(--muted);letter-spacing:1px;margin-top:2px;}
+.zh-avail{font-size:11px;margin-top:6px;font-weight:700;}
+
+/* SEATS GRID */
+.seats-label{font-size:11px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:12px;}
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:8px;margin-bottom:22px;}
+.seat{
+  aspect-ratio:1;border-radius:6px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;cursor:pointer;
+  transition:all .2s;border:2px solid transparent;
+}
+.seat .sn{font-family:'Share Tech Mono',monospace;font-size:13px;font-weight:700;margin-bottom:3px;}
+.seat .sl{font-size:9px;letter-spacing:.5px;text-transform:uppercase;}
+.seat.free{background:rgba(0,255,195,.07);border-color:rgba(0,255,195,.5);color:var(--neon);}
+.seat.free:hover{background:rgba(0,255,195,.2);transform:scale(1.07);box-shadow:0 0 16px rgba(0,255,195,.3);}
+.seat.busy{background:rgba(255,45,85,.06);border-color:rgba(255,45,85,.4);color:var(--red);cursor:not-allowed;}
+.seat.reserved{background:rgba(255,170,0,.06);border-color:rgba(255,170,0,.4);color:var(--gold);cursor:not-allowed;}
+.seat.picked{background:rgba(0,255,195,.22);border-color:var(--neon);box-shadow:0 0 20px rgba(0,255,195,.4);transform:scale(1.07);}
+
+/* SEAT LEGEND */
+.sleg{display:flex;gap:16px;margin-bottom:18px;flex-wrap:wrap;}
+.sleg-i{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);}
+.sleg-d{width:13px;height:13px;border-radius:3px;}
+
+/* BOOKING FORM */
+.bform{display:none;}.bform.on{display:block;}
+.fg{margin-bottom:14px;}
+.fl{display:block;font-size:10px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.fi{width:100%;background:var(--card);border:1px solid var(--border);color:var(--text);
+  font-family:'Exo 2',sans-serif;font-size:13px;padding:10px 13px;border-radius:4px;outline:none;transition:.2s;}
+.fi:focus{border-color:var(--neon);}.fi::placeholder{color:var(--muted);}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.sum-box{background:var(--card);border:1px solid var(--border);border-radius:7px;padding:16px;margin-bottom:16px;}
+.sr{display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px;}
+.sr:last-child{border-top:1px solid var(--border);padding-top:11px;margin-top:7px;
+  font-size:16px;font-weight:700;color:var(--neon);margin-bottom:0;}
+.sr span:first-child{color:var(--muted);}
+.mbtns{display:flex;gap:10px;margin-top:18px;}
+.mbtns .btn-p,.mbtns .btn-o{flex:1;padding:12px 18px;}
+
+/* ── MAP ── */
+#map{height:460px;border-radius:8px;border:1px solid var(--border);overflow:hidden;}
+.leaflet-container{background:#060f1c!important;}
+.mpop{font-family:'Exo 2',sans-serif;font-size:13px;color:#fff;}
+.mpop strong{color:var(--neon);font-size:14px;display:block;margin-bottom:6px;}
+.mpop .zone-row{display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:3px;}
+
+/* ── OWNER PANEL ── */
+.ptabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:28px;gap:0;flex-wrap:wrap;}
+.pt{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);
+  font-family:'Exo 2',sans-serif;font-size:12px;font-weight:600;letter-spacing:1.5px;
+  padding:11px 20px;cursor:pointer;text-transform:uppercase;transition:.2s;margin-bottom:-1px;}
+.pt.on{color:var(--neon);border-bottom-color:var(--neon);}
+.tab{display:none;}.tab.on{display:block;}
+
+/* OWNER ZONES */
+.owner-zones{display:flex;flex-direction:column;gap:20px;}
+.oz{background:var(--card);border:1px solid var(--border);border-radius:9px;overflow:hidden;}
+.oz-head{
+  display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;
+  padding:16px 20px;cursor:pointer;border-bottom:1px solid var(--border);
+  transition:background .2s;
+}
+.oz-head:hover{background:rgba(0,255,195,.03);}
+.oz-left{display:flex;align-items:center;gap:12px;}
+.oz-icon{font-size:22px;}
+.oz-name{font-family:'Share Tech Mono',monospace;font-size:14px;color:#fff;letter-spacing:1px;}
+.oz-meta{font-size:11px;color:var(--muted);margin-top:2px;}
+.oz-right{display:flex;align-items:center;gap:10px;}
+.oz-price{font-family:'Share Tech Mono',monospace;font-size:15px;color:var(--neon);}
+.oz-toggle{font-size:16px;color:var(--muted);transition:transform .3s;}
+.oz-body{padding:16px 20px;display:none;}
+.oz-body.open{display:block;}
+.oz-seats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;margin-bottom:16px;}
+.oseat{background:var(--bg3);border:1px solid var(--border);border-radius:6px;
+  padding:10px 8px;text-align:center;}
+.osn{font-family:'Share Tech Mono',monospace;font-size:15px;margin-bottom:5px;}
+.oss{font-size:9px;letter-spacing:1px;text-transform:uppercase;font-weight:700;margin-bottom:8px;}
+.osb{display:flex;gap:4px;justify-content:center;}
+.ob2{padding:3px 7px;font-size:10px;font-family:'Exo 2',sans-serif;font-weight:700;
+  border-radius:3px;cursor:pointer;border:1px solid;transition:.15s;}
+.ob-f{border-color:var(--neon);color:var(--neon);background:rgba(0,255,195,.07);}
+.ob-f:hover{background:var(--neon);color:#000;}
+.ob-b{border-color:var(--red);color:var(--red);background:rgba(255,45,85,.07);}
+.ob-b:hover{background:var(--red);color:#fff;}
+.oz-bar{display:flex;gap:8px;justify-content:flex-end;padding-top:12px;border-top:1px solid var(--border);}
+
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;font-size:13px;}
+.tbl th{text-align:left;padding:10px 13px;font-size:10px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--muted);border-bottom:1px solid var(--border);}
+.tbl td{padding:11px 13px;border-bottom:1px solid rgba(0,255,195,.04);}
+.tbl tr:hover td{background:rgba(0,255,195,.025);}
+.sbg{padding:3px 9px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;}
+.sa{background:rgba(0,255,195,.14);color:var(--neon);}
+.sp{background:rgba(255,170,0,.14);color:var(--gold);}
+.sd{background:rgba(58,96,128,.2);color:var(--muted);}
+
+/* KSTATS */
+.ksg{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;margin-bottom:24px;}
+.ks{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:18px;}
+.ksv{font-family:'Share Tech Mono',monospace;font-size:24px;font-weight:700;margin-bottom:4px;}
+.ksl{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
+.ksd{font-size:11px;margin-top:5px;}
+
+/* ADD FORM */
+.aform{max-width:660px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:28px;}
+.fs{border:1px solid var(--border);border-radius:7px;padding:18px;margin-bottom:16px;}
+.fst{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--neon);margin-bottom:14px;}
+
+/* ADD ZONE BUILDER */
+.zone-builder{border:1px solid var(--border);border-radius:7px;padding:18px;margin-bottom:14px;}
+.zb-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.zb-title{font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:1.5px;color:#fff;}
+.zb-del{background:none;border:1px solid rgba(255,45,85,.3);color:var(--red);width:28px;height:28px;
+  border-radius:4px;cursor:pointer;font-size:14px;transition:.2s;}
+.zb-del:hover{background:var(--red);color:#fff;}
+
+/* TOAST */
+.toast-el{position:fixed;bottom:26px;right:26px;z-index:9000;
+  background:var(--card);border:1px solid var(--neon);border-radius:7px;
+  padding:13px 20px;color:var(--neon);font-weight:600;font-size:13px;
+  transform:translateX(120%);opacity:0;transition:all .3s;
+  box-shadow:0 0 26px rgba(0,255,195,.18);}
+.toast-el.show{transform:none;opacity:1;}
+
+/* HCHART */
+.hc{display:flex;align-items:flex-end;gap:5px;height:80px;}
+.hb{flex:1;border-radius:3px 3px 0 0;min-height:4px;
+  background:linear-gradient(to top,rgba(0,255,195,.8),rgba(0,170,255,.4));}
+
+@media(max-width:640px){
+  header{padding:0 12px;}.logo{font-size:14px;}
+  .wrap{padding:44px 12px;}
+  .frow{grid-template-columns:1fr;}
+  .sg{grid-template-columns:repeat(4,1fr);}
+  .sbar{gap:24px;}
+  .zone-tabs{gap:0;}
+  .ztab{padding:8px 12px;font-size:11px;}
+}
+
+/* ── AUTH PAGES ── */
+.auth-page{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  padding:80px 20px 40px;position:relative;overflow:hidden;
+}
+.auth-grid{
+  position:absolute;inset:0;
+  background-image:linear-gradient(rgba(0,255,195,.025) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,255,195,.025) 1px,transparent 1px);
+  background-size:50px 50px;animation:gd 25s linear infinite;
+}
+.auth-glow{
+  position:absolute;width:600px;height:600px;
+  background:radial-gradient(circle,rgba(0,170,255,.07) 0%,transparent 65%);
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  animation:br 6s ease-in-out infinite;
+}
+.auth-box{
+  position:relative;z-index:2;
+  width:100%;max-width:440px;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:12px;overflow:hidden;
+  animation:pi .4s ease;
+}
+.auth-header{padding:28px 32px 0;text-align:center;}
+.auth-logo{font-family:'Share Tech Mono',monospace;font-size:22px;
+  color:var(--neon);text-shadow:0 0 18px var(--neon);letter-spacing:3px;margin-bottom:6px;}
+.auth-logo em{color:var(--blue);font-style:normal;}
+.auth-title{font-family:'Share Tech Mono',monospace;font-size:16px;
+  color:#fff;letter-spacing:2px;margin-bottom:4px;}
+.auth-sub{font-size:13px;color:var(--muted);}
+.auth-tabs{display:flex;margin:22px 32px 0;background:var(--card);border-radius:6px;padding:3px;gap:3px;}
+.auth-tab{flex:1;background:none;border:none;font-family:'Exo 2',sans-serif;
+  font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--muted);padding:9px;cursor:pointer;border-radius:4px;transition:.2s;}
+.auth-tab.on{background:var(--neon);color:#000;}
+.auth-body{padding:24px 32px 32px;}
+.auth-fg{margin-bottom:15px;}
+.auth-fl{display:block;font-size:10px;font-weight:600;letter-spacing:2px;
+  text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+.auth-fi{width:100%;background:var(--card);border:1px solid var(--border);
+  color:var(--text);font-family:'Exo 2',sans-serif;font-size:14px;
+  padding:11px 14px;border-radius:5px;outline:none;transition:.25s;}
+.auth-fi:focus{border-color:var(--neon);box-shadow:0 0 0 3px rgba(0,255,195,.08);}
+.auth-fi::placeholder{color:var(--muted);}.auth-fi.err{border-color:var(--red);}
+.auth-err{background:rgba(255,45,85,.1);border:1px solid rgba(255,45,85,.3);
+  border-radius:5px;padding:10px 14px;font-size:12px;color:var(--red);
+  margin-bottom:12px;display:none;}
+.auth-err.show{display:block;}
+.auth-btn{width:100%;background:var(--neon);color:#000;border:none;
+  font-family:'Share Tech Mono',monospace;font-size:13px;letter-spacing:2px;
+  padding:14px;cursor:pointer;border-radius:5px;text-transform:uppercase;
+  transition:.25s;box-shadow:0 0 22px rgba(0,255,195,.3);margin-top:4px;}
+.auth-btn:hover{background:#fff;box-shadow:0 0 40px rgba(0,255,195,.5);}
+.auth-btn:disabled{opacity:.5;cursor:not-allowed;}
+.demo-accounts{background:var(--card);border:1px solid var(--border);
+  border-radius:6px;padding:14px;margin-bottom:16px;}
+.demo-title{font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;}
+.demo-acc{display:flex;justify-content:space-between;align-items:center;
+  font-size:12px;cursor:pointer;transition:.15s;border-radius:4px;
+  padding:8px;border-bottom:1px solid rgba(0,255,195,.05);}
+.demo-acc:hover{background:rgba(0,255,195,.06);}
+.demo-acc:last-child{border-bottom:none;}
+.demo-name{color:#fff;font-weight:700;}
+.demo-club{color:var(--muted);font-size:11px;}
+.demo-fill{font-size:10px;color:var(--neon);letter-spacing:1px;}
+.owner-panel-head{display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:14px;margin-bottom:26px;
+  padding:18px 22px;background:var(--card);border:1px solid var(--border);border-radius:9px;}
+.oph-left{display:flex;align-items:center;gap:14px;}
+.oph-avatar{width:46px;height:46px;border-radius:8px;
+  background:linear-gradient(135deg,var(--neon),var(--blue));
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Share Tech Mono',monospace;font-size:17px;font-weight:700;color:#000;}
+.oph-name{font-family:'Share Tech Mono',monospace;font-size:15px;color:#fff;letter-spacing:1px;}
+.oph-club{font-size:12px;color:var(--muted);margin-top:2px;}
+.oph-badge{padding:3px 10px;border-radius:3px;font-size:10px;font-weight:700;
+  letter-spacing:1px;text-transform:uppercase;
+  background:rgba(0,255,195,.12);color:var(--neon);border:1px solid rgba(0,255,195,.25);}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo" onclick="goto('clubs');window.scrollTo({top:0,behavior:'smooth'})" style="cursor:pointer;user-select:none;" title="На главную">CLUB<em>FINDER</em></div>
+  <nav class="nav">
+    <button class="nb on" onclick="goto('clubs')">🎮 Клубы</button>
+    <button class="nb" onclick="goto('mappage')">🗺 Карта</button>
+    <div id="nav-auth-area" style="display:flex;align-items:center;gap:6px;">
+      <button class="nb cta" id="nav-owner-btn" onclick="ownerNavClick()">⚡ Владельцам</button>
+      <div id="nav-user-info" style="display:none;align-items:center;gap:8px;">
+        <div style="display:flex;align-items:center;gap:7px;background:rgba(0,255,195,0.07);border:1px solid var(--border);border-radius:4px;padding:5px 12px;">
+          <span class="ldot"></span>
+          <span id="nav-username" style="font-size:12px;font-weight:700;color:var(--neon);font-family:'Share Tech Mono',monospace;letter-spacing:1px;"></span>
+        </div>
+        <button class="nb" onclick="logout()" style="color:var(--red)!important;border-color:rgba(255,45,85,0.3)!important;font-size:11px;">Выйти</button>
+      </div>
+    </div>
+  </nav>
+</header>
+
+<!-- ══ CLUBS PAGE ══ -->
+<div class="page active" id="page-clubs">
+  <div class="hero">
+    <div class="hero-bg"></div><div class="hero-glow"></div>
+    <div class="hero-tag">[ АКТАУ · CLUB FINDER · ЗОНЫ И УСТРОЙСТВА ]</div>
+    <h1><span class="w1">ВЫБЕРИ ЗОНУ.</span><span class="w2">ИГРАЙ.</span></h1>
+    <p class="hero-sub">Стандарт, VIP, PlayStation, VR, приватные комнаты — все клубы города в одном месте.</p>
+    <div class="hero-ctas">
+      <button class="btn-p" onclick="document.getElementById('clubs-s').scrollIntoView({behavior:'smooth'})">Найти место</button>
+      <button class="btn-o" onclick="goto('mappage')">Карта клубов</button>
+      <button class="btn-o" onclick="ownerNavClick()">Я владелец</button>
+    </div>
+  </div>
+
+  <div class="sbar">
+    <div class="stt"><span class="stn" id="st-clubs">4</span><span class="stl">Клубов</span></div>
+    <div class="stt"><span class="stn" id="st-zones">18</span><span class="stl">Зон</span></div>
+    <div class="stt"><span class="stn" id="st-free" style="color:var(--neon);text-shadow:0 0 16px var(--neon)">–</span><span class="stl"><span class="ldot"></span>Свободно</span></div>
+    <div class="stt"><span class="stn" id="st-busy" style="color:var(--red)">–</span><span class="stl">Занято</span></div>
+  </div>
+
+  <div class="wrap" id="clubs-s">
+    <div class="stitle">КОМПЬЮТЕРНЫЕ <span>КЛУБЫ</span></div>
+    <div class="ssub">Кликни на клуб чтобы выбрать зону и место · данные из базы данных</div>
+
+    <!-- ZONE FILTER -->
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;" id="zone-filter">
+      <button class="zchip zt-std on-filter" onclick="filterZone('')" id="zf-all" style="border-color:var(--neon);color:var(--neon);background:rgba(0,255,195,.1)">Все зоны</button>
+      <button class="zchip zt-std" onclick="filterZone('standard')" id="zf-standard">🖥 Стандарт</button>
+      <button class="zchip zt-vip" onclick="filterZone('vip')" id="zf-vip">👑 VIP</button>
+      <button class="zchip zt-ps" onclick="filterZone('playstation')" id="zf-playstation">🎮 PlayStation</button>
+      <button class="zchip zt-vr" onclick="filterZone('vr')" id="zf-vr">🥽 VR</button>
+      <button class="zchip zt-priv" onclick="filterZone('private')" id="zf-private">🚪 Приватная</button>
+    </div>
+
+    <div class="srow">
+      <input class="si" type="text" placeholder="🔍  Поиск клуба..." id="qs" oninput="renderClubs()">
+      <select class="ss" id="qst" onchange="renderClubs()">
+        <option value="">Все</option>
+        <option value="open">Открытые</option>
+        <option value="free">Есть места</option>
+      </select>
+      <select class="ss" id="qso" onchange="renderClubs()">
+        <option value="free">По свободным</option>
+        <option value="pa">Цена ↑</option>
+        <option value="pd">Цена ↓</option>
+      </select>
+    </div>
+
+    <div class="cg" id="clubs-grid"></div>
+  </div>
+</div>
+
+<!-- ══ MAP PAGE ══ -->
+<div class="page" id="page-mappage">
+  <div class="wrap">
+    <div class="stitle">КАРТА <span>КЛУБОВ</span></div>
+    <div class="ssub">Нажми на маркер чтобы увидеть зоны и забронировать</div>
+    <div id="map"></div>
+  </div>
+</div>
+
+<!-- ══ OWNER PAGE ══ -->
+<div class="page" id="page-owner">
+  <div class="wrap">
+    <!-- OWNER PROFILE HEADER -->
+    <div class="owner-panel-head" id="owner-panel-head">
+      <div class="oph-left">
+        <div class="oph-avatar" id="oph-avatar">?</div>
+        <div>
+          <div class="oph-name" id="oph-name">—</div>
+          <div class="oph-club" id="oph-club">—</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span class="ldot"></span>
+        <span style="font-size:11px;color:var(--muted);letter-spacing:1px">Онлайн</span>
+        <span class="oph-badge">ВЛАДЕЛЕЦ</span>
+        <button class="nb" onclick="logout()" style="color:var(--red)!important;border-color:rgba(255,45,85,0.3)!important;font-size:11px;padding:6px 12px;">Выйти</button>
+      </div>
+    </div>
+    <div class="ptabs">
+      <button class="pt on" onclick="ptab('ozones',this)">🏢 Зоны и места</button>
+      <button class="pt" onclick="ptab('obookings',this)">📋 Брони</button>
+      <button class="pt" onclick="ptab('ostats',this)">📊 Статистика</button>
+      <button class="pt" onclick="ptab('oadd',this)">➕ Добавить клуб</button>
+      <button class="pt" onclick="ptab('osettings',this);loadSettings()">⚙️ Настройки</button>
+    </div>
+
+    <!-- TAB: ZONES -->
+    <div class="tab on" id="tab-ozones">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:3px">CYBER ZONE PRO</div>
+          <div style="font-size:11px;color:var(--muted)"><span class="ldot"></span>Онлайн · 4 зоны · 52 места</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="ob2 ob-f" style="padding:8px 14px;font-size:11px" onclick="allZonesFree()">✓ Все свободны</button>
+          <button class="ob2 ob-b" style="padding:8px 14px;font-size:11px" onclick="allZonesBusy()">✗ Все заняты</button>
+        </div>
+      </div>
+      <div class="owner-zones" id="owner-zones"></div>
+    </div>
+
+    <!-- TAB: BOOKINGS -->
+    <div class="tab" id="tab-obookings">
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr>
+            <th>Зона</th><th>Место</th><th>Клиент</th><th>Телефон</th>
+            <th>Время</th><th>Часов</th><th>Сумма</th><th>Статус</th><th>Действие</th>
+          </tr></thead>
+          <tbody id="bookings-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB: STATS -->
+    <div class="tab" id="tab-ostats">
+      <div class="ksg">
+        <div class="ks"><div class="ksv" style="color:var(--neon)">28 400 ₸</div><div class="ksl">Доход сегодня</div><div class="ksd" style="color:var(--neon)">↑ +18%</div></div>
+        <div class="ks"><div class="ksv" style="color:var(--blue)">63</div><div class="ksl">Посетителей</div><div class="ksd" style="color:var(--neon)">↑ +7</div></div>
+        <div class="ks"><div class="ksv" style="color:var(--gold)">81%</div><div class="ksl">Заполненность</div><div class="ksd" style="color:var(--muted)">Пик 18–22ч</div></div>
+        <div class="ks"><div class="ksv" style="color:var(--purple)">VIP</div><div class="ksl">Топ зона</div><div class="ksd" style="color:var(--muted)">92% заполнен</div></div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:18px;">
+        <div style="font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:14px">Загруженность по часам</div>
+        <div class="hc" id="hchart"></div>
+        <div style="display:flex;gap:5px;margin-top:5px" id="hlab"></div>
+      </div>
+      <!-- Zone revenue breakdown -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px;">
+        <div style="font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:16px">Доход по зонам</div>
+        <div id="zone-revenue"></div>
+      </div>
+    </div>
+
+    <!-- TAB: ADD CLUB -->
+    <div class="tab" id="tab-oadd">
+      <div class="aform">
+        <div class="stitle" style="margin-bottom:4px">ДОБАВИТЬ <span>КЛУБ</span></div>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:24px">Укажи данные клуба и настрой зоны — клуб появится после проверки (1–2 часа).</p>
+
+        <div class="fs">
+          <div class="fst">// ОСНОВНАЯ ИНФОРМАЦИЯ</div>
+          <div class="fg"><label class="fl">Название клуба *</label><input class="fi" type="text" placeholder="CYBER ZONE PRO"></div>
+          <div class="fg"><label class="fl">Адрес *</label><input class="fi" type="text" placeholder="ул. Абая 15, 3 этаж"></div>
+          <div class="frow">
+            <div class="fg"><label class="fl">Телефон *</label><input class="fi" type="tel" placeholder="+7 701 ..."></div>
+            <div class="fg"><label class="fl">Instagram</label><input class="fi" type="text" placeholder="@clubname"></div>
+          </div>
+          <div class="frow">
+            <div class="fg"><label class="fl">Открытие</label><input class="fi" type="time" value="10:00"></div>
+            <div class="fg"><label class="fl">Закрытие</label><input class="fi" type="time" value="02:00"></div>
+          </div>
+        </div>
+
+        <div class="fs">
+          <div class="fst">// ЗОНЫ КЛУБА</div>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:16px">Добавь зоны — у каждой свои устройства, цена и количество мест.</p>
+          <div id="zone-builders"></div>
+          <button class="btn-o" style="width:100%;padding:11px" onclick="addZoneBuilder()">+ Добавить зону</button>
+        </div>
+
+        <div class="fs">
+          <div class="fst">// КОНТАКТ ВЛАДЕЛЬЦА</div>
+          <div class="frow">
+            <div class="fg"><label class="fl">Имя *</label><input class="fi" type="text" placeholder="Алибек"></div>
+            <div class="fg"><label class="fl">Email *</label><input class="fi" type="email" placeholder="club@mail.kz"></div>
+          </div>
+          <div class="fg"><label class="fl">Пароль *</label><input class="fi" type="password" placeholder="Минимум 8 символов"></div>
+        </div>
+
+        <button class="btn-p" style="width:100%;padding:14px" onclick="submitClub()">Отправить заявку</button>
+      </div>
+    </div>
+
+    <!-- TAB: SETTINGS (full editor) -->
+    <div class="tab" id="tab-osettings">
+      <div style="max-width:720px">
+
+        <!-- SECTION: Club Info -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:24px;margin-bottom:16px;">
+          <div class="fst" style="margin-bottom:18px">// ОСНОВНАЯ ИНФОРМАЦИЯ</div>
+          <div class="fg"><label class="fl">Название клуба</label>
+            <input class="fi" type="text" id="st-name" placeholder="CYBER ZONE PRO"></div>
+          <div class="fg"><label class="fl">Адрес</label>
+            <input class="fi" type="text" id="st-addr" placeholder="ул. Абая 15, 3 этаж"></div>
+          <div class="frow">
+            <div class="fg"><label class="fl">Телефон</label>
+              <input class="fi" type="tel" id="st-phone" placeholder="+7 701 000 0000"></div>
+            <div class="fg"><label class="fl">Instagram</label>
+              <input class="fi" type="text" id="st-insta" placeholder="@clubname"></div>
+          </div>
+          <div class="fg"><label class="fl">Описание клуба</label>
+            <textarea class="fi" id="st-desc" rows="2" placeholder="Лучший клуб в Актау..." style="resize:vertical"></textarea></div>
+          <div class="frow">
+            <div class="fg"><label class="fl">Статус</label>
+              <select class="fi" id="st-open">
+                <option value="1">🟢 Открыт</option>
+                <option value="0">🔴 Закрыт</option>
+              </select>
+            </div>
+            <div class="fg"><label class="fl">Режим работы</label>
+              <input class="fi" type="text" id="st-hours" placeholder="Круглосуточно"></div>
+          </div>
+        </div>
+
+        <!-- SECTION: Zones editor -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:24px;margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px;">
+            <div class="fst" style="margin-bottom:0">// ЗАЛЫ И ЗОНЫ</div>
+            <button class="btn-o" style="padding:8px 18px;font-size:12px" onclick="addSettingsZone()">+ Добавить зал</button>
+          </div>
+          <div id="st-zones-list"></div>
+        </div>
+
+        <!-- SECTION: Account -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:9px;padding:24px;margin-bottom:16px;">
+          <div class="fst" style="margin-bottom:18px">// АККАУНТ</div>
+          <div class="frow">
+            <div class="fg"><label class="fl">Ваше имя</label>
+              <input class="fi" type="text" id="st-owner-name" placeholder="Алибек"></div>
+            <div class="fg"><label class="fl">Email</label>
+              <input class="fi" type="email" id="st-email" placeholder="club@mail.kz"></div>
+          </div>
+          <div class="frow">
+            <div class="fg"><label class="fl">Новый пароль</label>
+              <input class="fi" type="password" id="st-pass" placeholder="Оставь пустым если не менять"></div>
+            <div class="fg"><label class="fl">Повтор пароля</label>
+              <input class="fi" type="password" id="st-pass2" placeholder="••••••••"></div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;">
+          <button class="btn-p" style="flex:2;padding:14px" onclick="saveSettings()">💾 Сохранить все изменения</button>
+          <button class="btn-o" style="flex:1;padding:14px" onclick="previewSettings()">👁 Предпросмотр</button>
+        </div>
+        <div id="st-saved-msg" style="display:none;margin-top:14px;padding:12px 16px;background:rgba(0,255,195,.1);border:1px solid rgba(0,255,195,.3);border-radius:6px;color:var(--neon);font-size:13px;font-weight:600;text-align:center;">
+          ✅ Изменения сохранены и применены к сайту!
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CLUB DETAIL MODAL ══ -->
+<div class="overlay" id="cmodal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="mhead">
+      <div>
+        <div class="mtitle" id="modal-cname">—</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px" id="modal-caddr">—</div>
+      </div>
+      <button class="mclose" onclick="closeModal()">✕</button>
+    </div>
+    <div class="mbody">
+      <div class="zone-tabs" id="zone-tabs"></div>
+      <!-- Zone content injected here -->
+      <div id="zone-contents"></div>
+
+      <!-- Booking form (shown after seat pick) -->
+      <div class="bform" id="bform">
+        <div style="font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:14px">Детали бронирования</div>
+        <div class="sum-box" id="bsummary"></div>
+        <div class="frow">
+          <div class="fg"><label class="fl">Имя</label><input class="fi" id="bn" placeholder="Алибек"></div>
+          <div class="fg"><label class="fl">Телефон</label><input class="fi" id="bp" placeholder="+7 777 ..."></div>
+        </div>
+        <div class="frow">
+          <div class="fg"><label class="fl">Начало</label><input class="fi" type="time" id="bt" value="18:00"></div>
+          <div class="fg"><label class="fl">Часов</label><input class="fi" type="number" id="bh" value="2" min="1" max="12" oninput="updSum()"></div>
+        </div>
+        <div class="mbtns">
+          <button class="btn-o" onclick="cancelBook()">← Назад</button>
+          <button class="btn-p" onclick="confirmBook()">Забронировать</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══ AUTH PAGE ══ -->
+<div class="page" id="page-auth">
+  <div class="auth-page">
+    <div class="auth-grid"></div>
+    <div class="auth-glow"></div>
+    <div class="auth-box">
+      <div class="auth-header">
+        <div class="auth-logo">CLUB<em>FINDER</em></div>
+        <div class="auth-title" id="auth-title">ВХОД</div>
+        <div class="auth-sub" id="auth-sub">Панель управления клубом</div>
+      </div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab on" id="atab-login" onclick="authTab('login')">Войти</button>
+        <button class="auth-tab" id="atab-register" onclick="authTab('register')">Регистрация</button>
+      </div>
+
+      <div class="auth-body">
+
+        <!-- LOGIN FORM -->
+        <div id="aform-login">
+          <div class="demo-accounts">
+            <div class="demo-title">// Демо-аккаунты — нажми для входа</div>
+            <div class="demo-acc" onclick="demoLogin('cyber@demo.kz','demo123')">
+              <div><div class="demo-name">Арман Б.</div><div class="demo-club">CYBER ZONE PRO</div></div>
+              <span class="demo-fill">▶ ВОЙТИ</span>
+            </div>
+            <div class="demo-acc" onclick="demoLogin('arena@demo.kz','demo123')">
+              <div><div class="demo-name">Бекзат Н.</div><div class="demo-club">GAME ARENA</div></div>
+              <span class="demo-fill">▶ ВОЙТИ</span>
+            </div>
+            <div class="demo-acc" onclick="demoLogin('night@demo.kz','demo123')">
+              <div><div class="demo-name">Дина С.</div><div class="demo-club">NIGHT RIDER</div></div>
+              <span class="demo-fill">▶ ВОЙТИ</span>
+            </div>
+          </div>
+
+          <div style="text-align:center;font-size:11px;color:var(--muted);letter-spacing:1px;margin-bottom:16px">— или войди со своим аккаунтом —</div>
+
+          <div class="auth-err" id="login-err">Неверный email или пароль</div>
+          <div class="auth-fg">
+            <label class="auth-fl">Email</label>
+            <input class="auth-fi" type="email" id="l-email" placeholder="club@mail.kz">
+          </div>
+          <div class="auth-fg">
+            <label class="auth-fl">Пароль</label>
+            <div style="position:relative">
+              <input class="auth-fi" type="password" id="l-pass" placeholder="••••••••"
+                onkeydown="if(event.key==='Enter')doLogin()">
+              <button onclick="togglePass('l-pass',this)" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px">👁</button>
+            </div>
+          </div>
+          <div style="text-align:right;margin-bottom:14px">
+            <span style="font-size:11px;color:var(--neon);cursor:pointer;letter-spacing:1px" onclick="toast('📧 Ссылка для сброса отправлена на почту!')">Забыл пароль?</span>
+          </div>
+          <button class="auth-btn" onclick="doLogin()">Войти в панель</button>
+        </div>
+
+        <!-- REGISTER FORM -->
+        <div id="aform-register" style="display:none">
+          <div class="auth-err" id="reg-err"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="auth-fg"><label class="auth-fl">Ваше имя *</label>
+              <input class="auth-fi" type="text" id="r-name" placeholder="Алибек"></div>
+            <div class="auth-fg"><label class="auth-fl">Телефон *</label>
+              <input class="auth-fi" type="tel" id="r-phone" placeholder="+7 701 ..."></div>
+          </div>
+          <div class="auth-fg"><label class="auth-fl">Название клуба *</label>
+            <input class="auth-fi" type="text" id="r-club" placeholder="CYBER ZONE PRO"></div>
+          <div class="auth-fg"><label class="auth-fl">Адрес клуба *</label>
+            <input class="auth-fi" type="text" id="r-addr" placeholder="ул. Абая 15, 3 этаж"></div>
+          <div class="auth-fg"><label class="auth-fl">Email *</label>
+            <input class="auth-fi" type="email" id="r-email" placeholder="club@mail.kz"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="auth-fg"><label class="auth-fl">Пароль *</label>
+              <input class="auth-fi" type="password" id="r-pass" placeholder="Мин. 6 символов"></div>
+            <div class="auth-fg"><label class="auth-fl">Повтор *</label>
+              <input class="auth-fi" type="password" id="r-pass2" placeholder="••••••••"></div>
+          </div>
+          <button class="auth-btn" onclick="doRegister()">Создать аккаунт</button>
+          <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:14px;line-height:1.6">
+            После регистрации ты сразу можешь управлять клубом.<br>Данные сохраняются в этой сессии браузера.
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-el" id="toastel"></div>
+
+<script>
+const SUPABASE_URL = 'https://ogljbgohyxybubowvvrz.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_-AjH8oZReJfV-vJ_m5BqfA_n2mIYOxe';
+
+async function sbFetch(path, opts={}){
+  const headers = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json',
+    'Prefer': opts.prefer || 'return=representation',
+  };
+  if(opts.headers) Object.assign(headers, opts.headers);
+  const { headers:_, prefer:__, ...fetchOpts } = opts;
+  const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, { ...fetchOpts, headers });
+  if(!res.ok){
+    const err = await res.text();
+    console.error('Supabase error:', res.status, err);
+    throw new Error(err);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : [];
+}
+
+// ══════════════════════════════════════════
+//  ZONE TYPE CONFIG
+// ══════════════════════════════════════════
+const ZTYPES = {
+  standard:  {label:'Стандарт', icon:'🖥', cls:'zt-std',  color:'#00aaff', desc:'Игровые ПК · i7/RTX 3070 · 144Hz мониторы'},
+  vip:       {label:'VIP',      icon:'👑', cls:'zt-vip',  color:'#c084fc', desc:'Премиум ПК · i9/RTX 4080 · 165Hz · кресла премиум · приватность'},
+  playstation:{label:'PlayStation',icon:'🎮',cls:'zt-ps', color:'#ff6b35', desc:'PS5 · 4K OLED · DualSense · популярные тайтлы'},
+  vr:        {label:'VR',       icon:'🥽', cls:'zt-vr',  color:'#00ffc3', desc:'Meta Quest 3 / PS VR2 · свободная зона для движения'},
+  private:   {label:'Приватная',icon:'🚪', cls:'zt-priv', color:'#ffaa00', desc:'Отдельная комната · 2–6 мест · своя атмосфера'},
+};
+
+// ══════════════════════════════════════════
+//  CLUBS DATA
+// ══════════════════════════════════════════
+// CLUBS loaded from Supabase — starts empty, filled by loadAllClubs()
+let CLUBS = [];
+let ownerZones = [];
+let activeClub = null, activeZone = null, activeSeat = null;
+let zoneFilter = '';
+let bookings = [];
+
+function mkS(n,{f,b,r}){
+  const a=[];
+  for(let i=1;i<=n;i++){
+    const st=i<=f?'free':i<=f+b?'busy':'reserved';
+    a.push({id:i,status:st});
+  }
+  return a.sort(()=>Math.random()-.5);
+}
+function cntS(seats,s){return seats.filter(x=>x.status===s).length;}
+function totalFree(club){return club.zones.reduce((s,z)=>s+cntS(z.seats,'free'),0);}
+function minPrice(club){return club.zones.length?Math.min(...club.zones.map(z=>z.price)):0;}
+function maxPrice(club){return club.zones.length?Math.max(...club.zones.map(z=>z.price)):0;}
+
+// Convert Supabase club row → local club object
+function sbClubToLocal(c, idx){
+  const zones = (c.zones || []).map(z => ({
+    id:          z.id,
+    supabase_id: z.id,
+    type:        z.type || 'standard',
+    name:        z.name,
+    room:        z.room || 'Зал',
+    price:       z.price || 350,
+    devices:     z.devices ? z.devices.split(',').map(d=>d.trim()) : [],
+    seats:       mkS(z.seat_count || 10, {f: z.seat_count || 10, b:0, r:0})
+  }));
+  return {
+    id:          idx + 1,
+    supabase_id: c.id,
+    owner_id:    c.owner_id,
+    name:        c.name,
+    emoji:       c.emoji || '🏢',
+    lat:         c.lat  || (43.652 + (Math.random()-.5)*.02),
+    lng:         c.lng  || (51.190 + (Math.random()-.5)*.02),
+    addr:        c.address || '',
+    phone:       c.phone   || '',
+    open:        c.is_open !== false,
+    hours:       c.hours   || 'Круглосуточно',
+    zones:       zones
+  };
+}
+
+// Load ALL clubs from Supabase (public, for visitors)
+async function loadAllClubs(){
+  showLoading(true);
+  try {
+    const rows = await sbFetch('clubs?select=*,zones(*)&order=created_at.asc');
+    CLUBS = (rows || []).map((c, i) => sbClubToLocal(c, i));
+    renderClubs();
+    updateStatBar();
+  } catch(e){
+    console.error('Failed to load clubs:', e);
+    document.getElementById('clubs-grid').innerHTML =
+      '<div style="color:var(--muted);text-align:center;padding:60px;grid-column:1/-1">⚠ Не удалось загрузить клубы. Проверь интернет.</div>';
+  } finally {
+    showLoading(false);
+  }
+}
+
+function showLoading(on){
+  let el = document.getElementById('clubs-loading');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'clubs-loading';
+    el.style.cssText = 'display:none;color:var(--neon);text-align:center;padding:60px;grid-column:1/-1;font-family:Share Tech Mono,monospace;letter-spacing:2px;font-size:13px;';
+    el.innerHTML = '<span class="ldot"></span> ЗАГРУЗКА КЛУБОВ...';
+    document.getElementById('clubs-grid').before(el);
+  }
+  el.style.display = on ? 'block' : 'none';
+  if(on) document.getElementById('clubs-grid').innerHTML = '';
+}
+
+// ══════════════════════════════════════════
+//  RENDER CLUBS
+// ══════════════════════════════════════════
+function getFiltered(){
+  const q=document.getElementById('qs').value.toLowerCase();
+  const st=document.getElementById('qst').value;
+  const so=document.getElementById('qso').value;
+  let list=[...CLUBS];
+  if(q) list=list.filter(c=>c.name.toLowerCase().includes(q)||c.addr.toLowerCase().includes(q));
+  if(st==='open') list=list.filter(c=>c.open);
+  if(st==='free') list=list.filter(c=>c.open&&totalFree(c)>0);
+  if(zoneFilter) list=list.filter(c=>c.zones.some(z=>z.type===zoneFilter));
+  if(so==='pa') list.sort((a,b)=>minPrice(a)-minPrice(b));
+  if(so==='pd') list.sort((a,b)=>maxPrice(b)-maxPrice(a));
+  if(so==='free') list.sort((a,b)=>totalFree(b)-totalFree(a));
+  return list;
+}
+
+function renderClubs(){
+  const list=getFiltered();
+  const g=document.getElementById('clubs-grid');
+  if(!list.length){g.innerHTML='<div style="color:var(--muted);text-align:center;padding:60px;grid-column:1/-1;font-size:15px">Ничего не найдено</div>';return;}
+  g.innerHTML=list.map(c=>{
+    const tf=totalFree(c);
+    // filter zones if zone filter active
+    const showZones=zoneFilter?c.zones.filter(z=>z.type===zoneFilter):c.zones;
+    return `<div class="cc" onclick="openClub(${c.id})">
+      <div class="ci">${c.emoji}
+        <span class="cbadge ${c.open?'ob':'cb'}">${c.open?'● ОТКРЫТ':'● ЗАКРЫТ'}</span>
+      </div>
+      <div class="cb2">
+        <div class="cname">${c.name}</div>
+        <div class="cmeta">
+          <span>📍 ${c.addr}</span>
+          <span>24/7 ${c.hours}</span>
+          <span style="color:${tf>0?'var(--neon)':'var(--red)'}">${tf>0?`● ${tf} свободно`:'● Нет мест'}</span>
+        </div>
+        <div class="zone-chips">
+          ${showZones.map(z=>{
+            const zt=ZTYPES[z.type]||{label:z.type,icon:'🎯',cls:'zt-std',color:'var(--neon)',desc:z.type};
+            const zf=cntS(z.seats,'free');
+            return `<div class="zchip ${zt.cls}" onclick="event.stopPropagation();openClub(${c.id},'${z.id}')" title="${z.name}">
+              ${zt.icon} ${zt.label}
+              <span style="opacity:.6;font-size:9px;margin-left:2px">${zf} св.</span>
+            </div>`;
+          }).join('')}
+        </div>
+        <div class="cfoot">
+          <div class="cprice-range">${minPrice(c)}–${maxPrice(c)} ₸ <small>/ час</small></div>
+          <button class="bbtn" ${c.open&&tf>0?'':'disabled'}
+            onclick="event.stopPropagation();openClub(${c.id})">
+            ${c.open&&tf>0?'Выбрать место':'Нет мест'}
+          </button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  updateStatBar();
+}
+
+function filterZone(type){
+  zoneFilter=type;
+  document.querySelectorAll('[id^="zf-"]').forEach(b=>{
+    b.style.background='';b.style.borderColor='';b.style.color='';
+  });
+  const sel=document.getElementById(type?'zf-'+type:'zf-all');
+  if(sel){sel.style.background='rgba(0,255,195,.12)';sel.style.borderColor='var(--neon)';sel.style.color='var(--neon)';}
+  renderClubs();
+}
+
+function updateStatBar(){
+  const tf=CLUBS.reduce((s,c)=>s+totalFree(c),0);
+  const tb=CLUBS.reduce((s,c)=>s+c.zones.reduce((ss,z)=>ss+cntS(z.seats,'busy'),0),0);
+  const tz=CLUBS.reduce((s,c)=>s+c.zones.length,0);
+  const el_free=document.getElementById('st-free');
+  const el_busy=document.getElementById('st-busy');
+  const el_clubs=document.getElementById('st-clubs');
+  const el_zones=document.getElementById('st-zones');
+  if(el_free) el_free.textContent=tf;
+  if(el_busy) el_busy.textContent=tb;
+  if(el_clubs) el_clubs.textContent=CLUBS.length;
+  if(el_zones) el_zones.textContent=tz;
+}
+
+// ══════════════════════════════════════════
+//  CLUB MODAL
+// ══════════════════════════════════════════
+function openClub(id, focusZoneId){
+  activeClub=CLUBS.find(c=>c.id===id);
+  activeSeat=null; activeZone=null;
+  document.getElementById('modal-cname').textContent=activeClub.name;
+  document.getElementById('modal-caddr').textContent='📍 '+activeClub.addr+' · 🕐 '+activeClub.hours;
+
+  // Build zone tabs
+  const tabs=document.getElementById('zone-tabs');
+  const contents=document.getElementById('zone-contents');
+  tabs.innerHTML=activeClub.zones.map((z,i)=>{
+    const zt=ZTYPES[z.type]||{label:z.type,icon:'🎯',cls:'zt-std',color:'var(--neon)',desc:z.type};
+    const f=cntS(z.seats,'free');
+    return `<button class="ztab ${zt.cls}" style="color:${zt.color}" id="zt-${z.id}"
+      onclick="switchZoneTab('${z.id}')">${zt.icon} ${zt.label}
+      <span style="font-size:9px;opacity:.6">${f} св.</span></button>`;
+  }).join('');
+
+  contents.innerHTML=activeClub.zones.map(z=>{
+    const zt=ZTYPES[z.type]||{label:z.type,icon:'🎯',cls:'zt-std',color:'var(--neon)',desc:z.type};
+    const f=cntS(z.seats,'free');
+    return `<div class="zone-detail" id="zd-${z.id}">
+      <div class="zone-header" style="border-color:${zt.color}33;background:${zt.color}06">
+        <div class="zh-info">
+          <div class="zh-name" style="color:${zt.color}">${zt.icon} ${z.name}</div>
+          <div class="zh-desc">${zt.desc}</div>
+          <div class="zh-tags">
+            ${z.devices.map(d=>`<span class="ztag">⚡ ${d}</span>`).join('')}
+            <span class="ztag">🏠 ${z.room}</span>
+          </div>
+          <div class="zh-avail" style="color:${f>0?'var(--neon)':'var(--red)'}">
+            ${f>0?`● ${f} мест свободно из ${z.seats.length}`:`● Все ${z.seats.length} мест заняты`}
+          </div>
+        </div>
+        <div class="zh-price">
+          <div class="zh-price-n" style="color:${zt.color}">${z.price} ₸</div>
+          <div class="zh-price-l">за час</div>
+        </div>
+      </div>
+
+      <div class="sleg">
+        <div class="sleg-i"><div class="sleg-d" style="background:rgba(0,255,195,.2);border:1px solid var(--neon)"></div>Свободно</div>
+        <div class="sleg-i"><div class="sleg-d" style="background:rgba(255,45,85,.15);border:1px solid var(--red)"></div>Занято</div>
+        <div class="sleg-i"><div class="sleg-d" style="background:rgba(255,170,0,.15);border:1px solid var(--gold)"></div>Забронировано</div>
+      </div>
+
+      <div class="seats-label">Выбери место — нажми на зелёное</div>
+      <div class="sg" id="sg-${z.id}">
+        ${renderSeats(z)}
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('bform').classList.remove('on');
+
+  // Show first zone or focused zone
+  const firstZ=focusZoneId||activeClub.zones[0].id;
+  switchZoneTab(firstZ);
+
+  document.getElementById('cmodal').classList.add('show');
+}
+
+function renderSeats(z){
+  return z.seats.map(s=>`
+    <div class="seat ${s.status} ${activeSeat&&activeSeat.id===s.id&&activeZone&&activeZone.id===z.id?'picked':''}"
+      onclick="${s.status==='free'?`pickSeat('${z.id}',${s.id})`:''}">
+      <div class="sn">${s.id}</div>
+      <div class="sl">${s.status==='free'?'свободно':s.status==='busy'?'занято':'бронь'}</div>
+    </div>`).join('');
+}
+
+function switchZoneTab(zid){
+  document.querySelectorAll('.ztab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.zone-detail').forEach(d=>d.classList.remove('on'));
+  const tab=document.getElementById('zt-'+zid);
+  const det=document.getElementById('zd-'+zid);
+  if(tab) tab.classList.add('on');
+  if(det) det.classList.add('on');
+  activeZone=activeClub.zones.find(z=>z.id===zid);
+}
+
+function pickSeat(zid,sid){
+  activeZone=activeClub.zones.find(z=>z.id===zid);
+  activeSeat=activeZone.seats.find(s=>s.id===sid);
+  // Re-render seats for this zone
+  document.getElementById('sg-'+zid).innerHTML=renderSeats(activeZone);
+  // Show booking form
+  document.getElementById('bform').classList.add('on');
+  // Scroll to form
+  document.getElementById('bform').scrollIntoView({behavior:'smooth',block:'nearest'});
+  updSum();
+}
+
+function updSum(){
+  if(!activeSeat||!activeZone) return;
+  const h=parseInt(document.getElementById('bh').value)||1;
+  const total=h*activeZone.price;
+  const zt=ZTYPES[activeZone.type];
+  document.getElementById('bsummary').innerHTML=`
+    <div class="sr"><span>Клуб</span><span>${activeClub.name}</span></div>
+    <div class="sr"><span>Зона</span><span style="color:${zt.color}">${zt.icon} ${activeZone.name}</span></div>
+    <div class="sr"><span>Комната</span><span>${activeZone.room}</span></div>
+    <div class="sr"><span>Место</span><span style="color:var(--neon);font-family:'Share Tech Mono',monospace">№${activeSeat.id}</span></div>
+    <div class="sr"><span>Тариф</span><span>${activeZone.price} ₸/час</span></div>
+    <div class="sr"><span>Часов</span><span>${h}</span></div>
+    <div class="sr"><span>Итого</span><span>${total.toLocaleString()} ₸</span></div>`;
+}
+
+function cancelBook(){
+  document.getElementById('bform').classList.remove('on');
+  activeSeat=null;
+  if(activeZone) document.getElementById('sg-'+activeZone.id).innerHTML=renderSeats(activeZone);
+}
+
+function confirmBook(){
+  const name=document.getElementById('bn').value.trim();
+  const phone=document.getElementById('bp').value.trim();
+  if(!name||!phone){toast('⚠️ Заполни имя и телефон');return;}
+  const h=parseInt(document.getElementById('bh').value)||1;
+  activeSeat.status='reserved';
+  const bookingData = {
+    zone:activeZone.name, seat:activeSeat.id, name, phone,
+    time:document.getElementById('bt').value,
+    hours:h, total:h*activeZone.price, status:'pending'
+  };
+  bookings.push(bookingData);
+
+  // Save to Supabase if zone has supabase_id
+  if(activeZone.supabase_id){
+    sbFetch('bookings', {
+      method:'POST',
+      body: JSON.stringify({
+        zone_id: activeZone.supabase_id,
+        seat_number: activeSeat.id,
+        client_name: name,
+        client_phone: phone,
+        start_time: document.getElementById('bt').value,
+        hours: h,
+        total: h * activeZone.price,
+        status: 'pending'
+      }),
+      prefer:'return=minimal'
+    }).catch(e=>console.warn('Booking save error:',e));
+  }
+
+  closeModal();
+  renderClubs();
+  toast(`✅ ${activeZone.name} · Место №${activeSeat.id} забронировано! ${name}`);
+}
+
+function closeModal(){document.getElementById('cmodal').classList.remove('show');}
+
+// ══════════════════════════════════════════
+//  MAP
+// ══════════════════════════════════════════
+let map=null;
+function initMap(){
+  if(map) return;
+  map=L.map('map',{center:[43.652,51.19],zoom:14});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+    attribution:'&copy; OpenStreetMap &copy; CartoDB',maxZoom:19
+  }).addTo(map);
+  CLUBS.forEach(c=>{
+    const tf=totalFree(c);
+    const color=!c.open?'#ff2d55':tf===0?'#ff2d55':tf<5?'#ffaa00':'#00ffc3';
+    const icon=L.divIcon({
+      className:'',
+      html:`<div style="background:${color};color:#000;font-weight:700;font-size:11px;
+        padding:5px 10px;border-radius:4px;white-space:nowrap;
+        box-shadow:0 0 12px ${color}88;font-family:'Exo 2',sans-serif;">
+        ${c.emoji} ${c.name}</div>`,
+      iconAnchor:[0,0]
+    });
+    const marker=L.marker([c.lat,c.lng],{icon}).addTo(map);
+    marker.bindPopup(`
+      <div class="mpop" style="min-width:200px">
+        <strong>${c.name}</strong>
+        <div style="font-size:11px;color:#6a9abf;margin-bottom:10px">📍 ${c.addr}</div>
+        ${c.zones.map(z=>{
+          const zt=ZTYPES[z.type]||{label:z.type,icon:'🎯',cls:'zt-std',color:'var(--neon)',desc:z.type};
+          const f=cntS(z.seats,'free');
+          return `<div class="zone-row">
+            <span style="color:${zt.color}">${zt.icon} ${z.name}</span>
+            <span style="color:${f>0?'#00ffc3':'#ff2d55'};margin-left:auto">${f} св.</span>
+            <span style="color:#6a9abf;margin-left:6px">${z.price}₸</span>
+          </div>`;
+        }).join('')}
+        <button onclick="closeMap2();openClub(${c.id})" style="
+          margin-top:12px;width:100%;background:#00ffc3;border:none;
+          color:#000;font-weight:700;padding:8px;border-radius:3px;
+          cursor:pointer;font-size:12px;letter-spacing:1px;font-family:'Exo 2',sans-serif">
+          ВЫБРАТЬ ЗОНУ И МЕСТО</button>
+      </div>`,{maxWidth:260});
+  });
+}
+function closeMap2(){goto('clubs');}
+
+// ══════════════════════════════════════════
+//  OWNER PANEL
+// ══════════════════════════════════════════
+function renderOwnerZones(){
+  const g=document.getElementById('owner-zones');
+  g.innerHTML=ownerZones.map((z,zi)=>{
+    const zt=ZTYPES[z.type]||{label:z.type,icon:'🎯',cls:'zt-std',color:'var(--neon)',desc:z.type};
+    const f=cntS(z.seats,'free'),b=cntS(z.seats,'busy'),r=cntS(z.seats,'reserved');
+    return `
+    <div class="oz">
+      <div class="oz-head" onclick="toggleOZ(${zi})">
+        <div class="oz-left">
+          <div class="oz-icon">${zt.icon}</div>
+          <div>
+            <div class="oz-name" style="color:${zt.color}">${z.name}</div>
+            <div class="oz-meta">${z.room} · ${z.seats.length} мест ·
+              <span style="color:var(--neon)">${f} св.</span> /
+              <span style="color:var(--red)">${b} зан.</span> /
+              <span style="color:var(--gold)">${r} бр.</span>
+            </div>
+          </div>
+        </div>
+        <div class="oz-right">
+          <div class="oz-price">${z.price} ₸/ч</div>
+          <div class="oz-toggle" id="ozt-${zi}">▼</div>
+        </div>
+      </div>
+      <div class="oz-body" id="ozb-${zi}">
+        <div class="oz-seats-grid">
+          ${z.seats.map(s=>{
+            const c={free:'var(--neon)',busy:'var(--red)',reserved:'var(--gold)'}[s.status];
+            const lb={free:'свободно',busy:'занято',reserved:'бронь'}[s.status];
+            return `<div class="oseat" style="border-color:${c}22">
+              <div class="osn" style="color:${c}">№${s.id}</div>
+              <div class="oss" style="color:${c}">${lb}</div>
+              <div class="osb">
+                <button class="ob2 ob-f" onclick="ownerSetSeat(${zi},${s.id},'free')">✓</button>
+                <button class="ob2 ob-b" onclick="ownerSetSeat(${zi},${s.id},'busy')">✗</button>
+              </div>
+            </div>`;
+          }).join('')}
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:12px;display:flex;gap:8px;justify-content:space-between;align-items:center;flex-wrap:wrap;">
+          <div style="display:flex;gap:8px;">
+            <button class="ob2 ob-f" onclick="ownerAllZone(${zi},'free')">✓ Все свободны</button>
+            <button class="ob2 ob-b" onclick="ownerAllZone(${zi},'busy')">✗ Все заняты</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)">
+            Цена: <input type="number" value="${z.price}" style="width:70px;background:var(--bg3);border:1px solid var(--border);color:var(--neon);padding:4px 8px;border-radius:3px;font-size:13px;font-family:'Share Tech Mono',monospace"
+              onchange="ownerZones[${zi}].price=+this.value;toast('✓ Цена обновлена')"> ₸/час
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleOZ(i){
+  const body=document.getElementById('ozb-'+i);
+  const arrow=document.getElementById('ozt-'+i);
+  const open=body.classList.toggle('open');
+  arrow.style.transform=open?'rotate(180deg)':'';
+}
+
+function ownerSetSeat(zi,sid,st){
+  ownerZones[zi].seats.find(s=>s.id===sid).status=st;
+  renderOwnerZones();
+  toast(`Зона: ${ownerZones[zi].name} · Место №${sid} → ${st==='free'?'свободно':'занято'}`);
+}
+
+function ownerAllZone(zi,st){
+  ownerZones[zi].seats.forEach(s=>s.status=st);
+  renderOwnerZones();
+  toast(`${ownerZones[zi].name}: все ${st==='free'?'свободны':'заняты'}`);
+}
+
+function allZonesFree(){ownerZones.forEach(z=>z.seats.forEach(s=>s.status='free'));renderOwnerZones();toast('✓ Все зоны — все места свободны');}
+function allZonesBusy(){ownerZones.forEach(z=>z.seats.forEach(s=>s.status='busy'));renderOwnerZones();toast('✗ Все зоны — все места заняты');}
+
+async function loadOwnerBookings(){
+  if(!currentUser) return;
+  const club = CLUBS.find(c=>c.id===currentUser.clubId);
+  if(!club || !club.supabase_id) return;
+  try {
+    // Get zone IDs for this club
+    const zoneIds = club.zones.map(z=>z.supabase_id).filter(Boolean);
+    if(!zoneIds.length) return;
+    const filter = zoneIds.map(id=>'zone_id.eq.'+id).join(',');
+    const rows = await sbFetch('bookings?or=('+filter+')&order=created_at.desc&select=*,zones(name)');
+    bookings = (rows||[]).map(b=>({
+      id: b.id,
+      zone: b.zones?.name || '—',
+      seat: b.seat_number || '—',
+      name: b.client_name,
+      phone: b.client_phone,
+      time: b.start_time,
+      hours: b.hours,
+      total: b.total,
+      status: b.status
+    }));
+    renderBookings();
+  } catch(e){ console.warn('Bookings load error:', e); }
+}
+
+function renderBookings(){
+  document.getElementById('bookings-body').innerHTML=bookings.map((b,i)=>`
+    <tr>
+      <td style="color:var(--blue);font-size:11px;font-weight:700">${b.zone}</td>
+      <td style="font-family:'Share Tech Mono',monospace;color:var(--neon)">№${b.seat}</td>
+      <td style="font-weight:600">${b.name}</td>
+      <td style="color:var(--muted)">${b.phone}</td>
+      <td>${b.time}</td><td>${b.hours} ч</td>
+      <td style="color:var(--neon);font-weight:700">${b.total.toLocaleString()} ₸</td>
+      <td><span class="sbg ${b.status==='active'?'sa':b.status==='pending'?'sp':'sd'}">${b.status==='active'?'Активна':b.status==='pending'?'Ожидает':'Готово'}</span></td>
+      <td style="display:flex;gap:4px">
+        <button class="ob2 ob-f" onclick="bkConfirm(${i})">✓</button>
+        <button class="ob2 ob-b" onclick="bkCancel(${i})">✗</button>
+      </td>
+    </tr>`).join('');
+}
+
+function bkConfirm(i){
+  bookings[i].status='active';
+  if(bookings[i].id){
+    sbFetch('bookings?id=eq.'+bookings[i].id,{method:'PATCH',body:JSON.stringify({status:'active'}),prefer:'return=minimal'})
+    .catch(e=>console.warn(e));
+  }
+  renderBookings();toast('✓ Бронь подтверждена');
+}
+function bkCancel(i){
+  if(bookings[i].id){
+    sbFetch('bookings?id=eq.'+bookings[i].id,{method:'DELETE',prefer:'return=minimal'})
+    .catch(e=>console.warn(e));
+  }
+  bookings.splice(i,1);renderBookings();toast('✗ Бронь отменена');
+}
+
+function renderStats(){
+  const hours=[15,22,30,42,50,68,88,100,84,72,52,32];
+  const labels=['10','11','12','13','14','15','16','17','18','19','20','21'];
+  document.getElementById('hchart').innerHTML=hours.map(v=>
+    `<div class="hb" style="height:${v}%"></div>`).join('');
+  document.getElementById('hlab').innerHTML=labels.map(l=>
+    `<div style="flex:1;text-align:center;font-size:9px;color:var(--muted);margin-top:4px">${l}</div>`).join('');
+
+  const zoneRevs=[
+    {name:'Стандарт',color:'var(--zone-std)',pct:38,sum:'10 780 ₸'},
+    {name:'VIP Lounge',color:'var(--zone-vip)',pct:32,sum:'9 080 ₸'},
+    {name:'PlayStation',color:'var(--zone-ps)',pct:18,sum:'5 112 ₸'},
+    {name:'Приватные кабины',color:'var(--zone-priv)',pct:12,sum:'3 408 ₸'},
+  ];
+  document.getElementById('zone-revenue').innerHTML=zoneRevs.map(z=>`
+    <div style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px;font-size:13px">
+        <span style="color:${z.color}">${z.name}</span>
+        <span style="font-family:'Share Tech Mono',monospace;color:var(--neon)">${z.sum}</span>
+      </div>
+      <div style="background:var(--bg3);border-radius:3px;height:6px;overflow:hidden">
+        <div style="width:${z.pct}%;height:100%;background:${z.color};border-radius:3px;transition:width .8s"></div>
+      </div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════
+//  ADD ZONE BUILDER
+// ══════════════════════════════════════════
+let zbCount=0;
+function addZoneBuilder(){
+  zbCount++;
+  const id='zb'+zbCount;
+  const div=document.createElement('div');
+  div.className='zone-builder';
+  div.id=id;
+  div.innerHTML=`
+    <div class="zb-head">
+      <div class="zb-title">ЗОНА #${zbCount}</div>
+      <button class="zb-del" onclick="document.getElementById('${id}').remove()">✕</button>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Тип зоны</label>
+        <select class="fi">
+          <option value="standard">🖥 Стандарт</option>
+          <option value="vip">👑 VIP</option>
+          <option value="playstation">🎮 PlayStation</option>
+          <option value="vr">🥽 VR</option>
+          <option value="private">🚪 Приватная комната</option>
+        </select></div>
+      <div class="fg"><label class="fl">Название зоны</label>
+        <input class="fi" type="text" placeholder="Напр. VIP Lounge"></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Комната / место</label>
+        <input class="fi" type="text" placeholder="Напр. 2-й этаж"></div>
+      <div class="fg"><label class="fl">Цена ₸/час</label>
+        <input class="fi" type="number" placeholder="500"></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="fl">Кол-во мест</label>
+        <input class="fi" type="number" placeholder="10"></div>
+      <div class="fg"><label class="fl">Устройства / фишки</label>
+        <input class="fi" type="text" placeholder="i9, RTX 4080, 165Hz ..."></div>
+    </div>`;
+  document.getElementById('zone-builders').appendChild(div);
+}
+
+function submitClub(){
+  toast('📨 Заявка отправлена! Свяжемся в течение 1–2 часов.');
+}
+
+// ══════════════════════════════════════════
+//  NAV
+// ══════════════════════════════════════════
+function goto(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(id==='mappage') setTimeout(initMap,120);
+  if(id==='owner'){renderOwnerZones();loadOwnerBookings();renderStats();}
+  if(id==='clubs') loadAllClubs();
+}
+
+function ptab(id,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.pt').forEach(t=>t.classList.remove('on'));
+  document.getElementById('tab-'+id).classList.add('on');
+  el.classList.add('on');
+}
+
+// ══════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════
+function toast(msg){
+  const el=document.getElementById('toastel');
+  el.textContent=msg;el.classList.add('show');
+  clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),3400);
+}
+
+// Auto-refresh clubs every 30 seconds (real data)
+setInterval(()=>{ if(CLUBS.length) loadAllClubs(); }, 30000);
+
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+// Load clubs from Supabase on startup
+loadAllClubs();
+addZoneBuilder();
+
+// ══════════════════════════════════════════
+//  AUTH SYSTEM — Supabase
+// ══════════════════════════════════════════
+
+// sbFetch moved to top of script
+
+let currentUser = null;
+
+// ── Session: localStorage (persists forever) ──
+function loadSession(){
+  const s = localStorage.getItem('ag_session');
+  if(s){
+    try {
+      currentUser = JSON.parse(s);
+      updateNavForUser();
+      // Загружаем клуб из БД в фоне
+      if(currentUser) loadUserClub();
+    } catch(e) { localStorage.removeItem('ag_session'); }
+  }
+}
+
+function saveSession(user){
+  currentUser = user;
+  localStorage.setItem('ag_session', JSON.stringify(user));
+  updateNavForUser();
+}
+
+function updateNavForUser(){
+  if(currentUser){
+    document.getElementById('nav-owner-btn').style.display = 'none';
+    const ui = document.getElementById('nav-user-info');
+    ui.style.display = 'flex';
+    document.getElementById('nav-username').textContent = currentUser.name;
+  } else {
+    document.getElementById('nav-owner-btn').style.display = '';
+    document.getElementById('nav-user-info').style.display = 'none';
+  }
+}
+
+function ownerNavClick(){
+  if(currentUser){ gotoOwner(); }
+  else { goto('auth'); authTab('login'); }
+}
+
+async function loadUserClub(){
+  if(!currentUser || !currentUser.id) return;
+  try {
+    const clubs = await sbFetch('clubs?owner_id=eq.' + currentUser.id + '&select=*,zones(*)');
+    if(clubs && clubs.length){
+      const c = clubs[0];
+      // Find or update in CLUBS array
+      const idx = CLUBS.findIndex(x => x.supabase_id === c.id);
+      const clubObj = {
+        id: currentUser.clubId || (CLUBS.length + 1),
+        supabase_id: c.id,
+        owner_id: c.owner_id,
+        name: c.name, emoji: '🏢',
+        lat: 43.652 + Math.random()*.01,
+        lng: 51.190 + Math.random()*.01,
+        addr: c.address || '', phone: c.phone || '',
+        open: c.is_open !== false, hours: c.hours || 'Круглосуточно',
+        zones: (c.zones || []).map(z => ({
+          id: z.id,
+          supabase_id: z.id,
+          type: z.type || 'standard',
+          name: z.name,
+          room: z.room || 'Зал',
+          price: z.price || 350,
+          devices: z.devices ? z.devices.split(',').map(d=>d.trim()) : [],
+          seats: mkS(z.seat_count || 10, {f: z.seat_count || 10, b:0, r:0})
+        }))
+      };
+      if(idx >= 0) CLUBS[idx] = clubObj;
+      else CLUBS.push(clubObj);
+      currentUser.clubId = clubObj.id;
+      saveSession(currentUser);
+      ownerZones = JSON.parse(JSON.stringify(clubObj.zones));
+      renderClubs();
+      updateStatBar();
+    }
+  } catch(e){ console.warn('Club load error:', e); }
+}
+
+async function gotoOwner(){
+  if(!currentUser){ goto('auth'); return; }
+  await loadUserClub();
+  const club = CLUBS.find(c=>c.id===currentUser.clubId);
+  const initials = currentUser.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+  document.getElementById('oph-avatar').textContent = initials;
+  document.getElementById('oph-name').textContent = currentUser.name;
+  document.getElementById('oph-club').textContent = club ? club.name + ' · ' + club.addr : 'Загрузка...';
+  if(club) ownerZones = JSON.parse(JSON.stringify(club.zones));
+  goto('owner');
+}
+
+// ── LOGIN ──
+async function doLogin(){
+  const email = document.getElementById('l-email').value.trim().toLowerCase();
+  const pass  = document.getElementById('l-pass').value;
+  const errEl = document.getElementById('login-err');
+  const btn   = document.querySelector('#aform-login .auth-btn');
+  errEl.classList.remove('show');
+  ['l-email','l-pass'].forEach(id => document.getElementById(id).classList.remove('err'));
+
+  if(!email || !pass){
+    errEl.textContent = 'Заполни email и пароль';
+    errEl.classList.add('show'); return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Вход...';
+
+  try {
+    // Check owner in DB by email + password
+    const rows = await sbFetch('owners?email=eq.' + encodeURIComponent(email) + '&password_hash=eq.' + encodeURIComponent(pass) + '&select=*');
+    if(!rows || !rows.length){
+      errEl.textContent = 'Неверный email или пароль';
+      errEl.classList.add('show');
+      ['l-email','l-pass'].forEach(id => document.getElementById(id).classList.add('err'));
+      shake(document.querySelector('.auth-box'));
+      return;
+    }
+    const owner = rows[0];
+    saveSession({ id: owner.id, name: owner.name, email: owner.email, phone: owner.phone, clubId: null });
+    toast('✅ Добро пожаловать, ' + owner.name + '!');
+    await gotoOwner();
+  } catch(e){
+    errEl.textContent = 'Ошибка соединения. Проверь интернет.';
+    errEl.classList.add('show');
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Войти в панель';
+  }
+}
+
+// ── REGISTER ──
+async function doRegister(){
+  const name  = document.getElementById('r-name').value.trim();
+  const phone = document.getElementById('r-phone').value.trim();
+  const clubName = document.getElementById('r-club').value.trim();
+  const addr  = document.getElementById('r-addr').value.trim();
+  const email = document.getElementById('r-email').value.trim().toLowerCase();
+  const pass  = document.getElementById('r-pass').value;
+  const pass2 = document.getElementById('r-pass2').value;
+  const errEl = document.getElementById('reg-err');
+  const btn   = document.querySelector('#aform-register .auth-btn');
+  errEl.classList.remove('show');
+
+  if(!name||!phone||!clubName||!addr||!email||!pass){
+    errEl.textContent='Заполни все обязательные поля (*).';
+    errEl.classList.add('show'); return;
+  }
+  if(pass.length < 6){
+    errEl.textContent='Пароль минимум 6 символов.';
+    errEl.classList.add('show'); return;
+  }
+  if(pass !== pass2){
+    errEl.textContent='Пароли не совпадают.';
+    errEl.classList.add('show'); return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Регистрация...';
+
+  try {
+    // Check if email exists
+    const existing = await sbFetch('owners?email=eq.' + encodeURIComponent(email) + '&select=id');
+    if(existing && existing.length){
+      errEl.textContent='Аккаунт с таким email уже существует.';
+      errEl.classList.add('show'); return;
+    }
+
+    // Create owner
+    const owners = await sbFetch('owners', {
+      method: 'POST',
+      body: JSON.stringify({ name, email, phone, password_hash: pass }),
+      prefer: 'return=representation'
+    });
+    const owner = owners[0];
+
+    // Create club
+    const clubs = await sbFetch('clubs', {
+      method: 'POST',
+      body: JSON.stringify({ owner_id: owner.id, name: clubName, address: addr, phone, hours: 'Круглосуточно', is_open: true }),
+      prefer: 'return=representation'
+    });
+    const club = clubs[0];
+
+    // Create default zone
+    await sbFetch('zones', {
+      method: 'POST',
+      body: JSON.stringify({ club_id: club.id, name: 'Основной зал', type: 'standard', room: 'Главный зал', price: 350, seat_count: 10, devices: 'ПК, Монитор, Клавиатура, Мышь' }),
+      prefer: 'return=representation'
+    });
+
+    // Add to local CLUBS array
+    const newClubId = CLUBS.length + 1;
+    CLUBS.push({
+      id: newClubId, supabase_id: club.id, owner_id: owner.id,
+      name: clubName, emoji: '🏢',
+      lat: 43.652 + Math.random()*.01, lng: 51.190 + Math.random()*.01,
+      addr, phone, open: true, hours: 'Круглосуточно',
+      zones: [{id:'nz_new', type:'standard', name:'Основной зал', room:'Главный зал',
+               price:350, devices:['ПК','Монитор'], seats: mkS(10,{f:10,b:0,r:0})}]
+    });
+    renderClubs();
+
+    saveSession({ id: owner.id, name, email, phone, clubId: newClubId });
+    toast('🎉 Клуб ' + clubName + ' зарегистрирован!');
+    await gotoOwner();
+  } catch(e){
+    errEl.textContent = 'Ошибка: ' + (e.message || 'Проверь интернет');
+    errEl.classList.add('show');
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Создать аккаунт';
+  }
+}
+
+function demoLogin(email, pass){
+  document.getElementById('l-email').value = email;
+  document.getElementById('l-pass').value = pass;
+  doLogin();
+}
+
+function logout(){
+  currentUser = null;
+  localStorage.removeItem('ag_session');
+  updateNavForUser();
+  goto('clubs');
+  toast('👋 Вы вышли из системы');
+}
+
+function authTab(tab){
+  ['login','register'].forEach(t=>{
+    document.getElementById('aform-'+t).style.display = t===tab?'block':'none';
+    document.getElementById('atab-'+t).classList.toggle('on', t===tab);
+  });
+  document.getElementById('auth-title').textContent = tab==='login'?'ВХОД':'РЕГИСТРАЦИЯ';
+  document.getElementById('auth-sub').textContent = tab==='login'?'Панель управления клубом':'Добавь свой клуб на платформу';
+  document.getElementById('login-err').classList.remove('show');
+  document.getElementById('reg-err').classList.remove('show');
+}
+
+function togglePass(id, btn){
+  const inp = document.getElementById(id);
+  inp.type = inp.type==='password' ? 'text' : 'password';
+  btn.textContent = inp.type==='password' ? '👁' : '🙈';
+}
+
+function shake(el){
+  el.style.animation='none';
+  setTimeout(()=>{ el.style.animation='shake .4s ease'; },10);
+}
+
+// ── Override goto to require auth for owner ──
+const _gotoOrig = goto;
+// patch already done inline via ownerNavClick + gotoOwner
+
+
+// ══════════════════════════════════════════
+//  SETTINGS TAB — FULL CLUB EDITOR
+// ══════════════════════════════════════════
+
+function loadSettings(){
+  if(!currentUser) return;
+  const club = CLUBS.find(c=>c.id===currentUser.clubId);
+  if(!club) return;
+
+  // Fill basic info
+  document.getElementById('st-name').value   = club.name  || '';
+  document.getElementById('st-addr').value   = club.addr  || '';
+  document.getElementById('st-phone').value  = club.phone || '';
+  document.getElementById('st-insta').value  = club.insta || '';
+  document.getElementById('st-desc').value   = club.desc  || '';
+  document.getElementById('st-hours').value  = club.hours || 'Круглосуточно';
+  document.getElementById('st-open').value   = club.open ? '1' : '0';
+  document.getElementById('st-owner-name').value = currentUser.name  || '';
+  document.getElementById('st-email').value      = currentUser.email || '';
+
+  renderSettingsZones(club);
+}
+
+function renderSettingsZones(club){
+  const container = document.getElementById('st-zones-list');
+  if(!club || !club.zones || !club.zones.length){
+    container.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:20px">Нет залов — нажми "+ Добавить зал"</div>';
+    return;
+  }
+  container.innerHTML = club.zones.map((z,zi)=>{
+    const zt = ZTYPES[z.type] || {label:z.type, icon:'🎯', cls:'zt-std', color:'var(--neon)', desc:z.type};
+    return `
+    <div style="border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;" id="sz-${zi}">
+      <!-- Zone header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:rgba(0,255,195,0.03);border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:20px">${zt.icon}</span>
+          <div>
+            <div style="font-family:'Share Tech Mono',monospace;font-size:13px;color:${zt.color}">${z.name}</div>
+            <div style="font-size:11px;color:var(--muted)">${z.room} · ${z.seats.length} мест · ${z.price} ₸/ч</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <button class="ob2 ob-f" id="sz-btn-${zi}" data-zi="${zi}" onclick="toggleZoneEdit(+this.dataset.zi)" style="padding:5px 12px;font-size:10px">✏ Изменить</button>
+          <button class="ob2 ob-b" data-zi="${zi}" onclick="deleteZone(+this.dataset.zi)" style="padding:5px 12px;font-size:10px">✕ Удалить</button>
+        </div>
+      </div>
+      <!-- Zone edit form (hidden by default) -->
+      <div id="sz-form-${zi}" style="display:none;padding:18px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div class="fg"><label class="fl">Название зала</label>
+            <input class="fi" id="sz-name-${zi}" value="${z.name}" placeholder="VIP Lounge"></div>
+          <div class="fg"><label class="fl">Тип зоны <span style="color:var(--muted);font-size:10px;font-weight:400;letter-spacing:0">(или введи свой)</span></label>
+            <input class="fi" list="zone-type-list" id="sz-type-${zi}"
+              value="${z.type}" placeholder="Например: Киберспорт, Ретро, Lounge...">
+            <datalist id="zone-type-list">
+              <option value="standard">🖥 Стандарт</option>
+              <option value="vip">👑 VIP</option>
+              <option value="playstation">🎮 PlayStation</option>
+              <option value="vr">🥽 VR</option>
+              <option value="private">🚪 Приватная</option>
+              <option value="esports">🏆 Киберспорт</option>
+              <option value="lounge">🛋 Lounge</option>
+              <option value="retro">🕹 Ретро</option>
+              <option value="kids">🧒 Детская</option>
+              <option value="night">🌙 Ночная</option>
+            </datalist></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div class="fg"><label class="fl">Комната / место</label>
+            <input class="fi" id="sz-room-${zi}" value="${z.room}" placeholder="2-й этаж"></div>
+          <div class="fg"><label class="fl">Цена ₸/час</label>
+            <input class="fi" type="number" id="sz-price-${zi}" value="${z.price}" placeholder="400"></div>
+        </div>
+        <div class="fg" style="margin-bottom:12px;"><label class="fl">Количество компьютеров / мест</label>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <input class="fi" type="number" id="sz-seats-${zi}" value="${z.seats.length}" min="1" max="100" placeholder="20" style="width:100px">
+            <span style="font-size:12px;color:var(--muted)">Текущее: ${z.seats.length} мест. При изменении — статус сбросится на "свободно"</span>
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:14px;"><label class="fl">Устройства / описание</label>
+          <input class="fi" id="sz-devices-${zi}" value="${z.devices ? z.devices.join(', ') : ''}" placeholder="i7, RTX 3070, 144Hz..."></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-p" style="padding:9px 20px;font-size:12px" data-zi="${zi}" onclick="saveZone(+this.dataset.zi)">✓ Сохранить зал</button>
+          <button class="btn-o" style="padding:9px 16px;font-size:12px" data-zi="${zi}" onclick="toggleZoneEdit(+this.dataset.zi)">Отмена</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleZoneEdit(zi){
+  const form = document.getElementById('sz-form-'+zi);
+  if(!form){ console.warn('Zone form not found:', zi); return; }
+  const isHidden = form.style.display === 'none' || form.style.display === '';
+  form.style.display = isHidden ? 'block' : 'none';
+  const btn = document.getElementById('sz-btn-'+zi);
+  if(btn) btn.textContent = isHidden ? '✕ Закрыть' : '✏ Изменить';
+}
+
+function saveZone(zi){
+  const club = CLUBS.find(c=>c.id===currentUser.clubId);
+  if(!club) return;
+  const z = club.zones[zi];
+  const newName    = document.getElementById('sz-name-'+zi).value.trim();
+  const newType    = document.getElementById('sz-type-'+zi).value;
+  const newRoom    = document.getElementById('sz-room-'+zi).value.trim();
+  const newPrice   = parseInt(document.getElementById('sz-price-'+zi).value) || z.price;
+  const newSeats   = parseInt(document.getElementById('sz-seats-'+zi).value) || z.seats.length;
+  const newDevices = document.getElementById('sz-devices-'+zi).value.split(',').map(d=>d.trim()).filter(Boolean);
+
+  if(!newName){ toast('⚠️ Введи название зала'); return; }
+
+  z.name    = newName;
+  z.type    = newType;
+  z.room    = newRoom || z.room;
+  z.price   = newPrice;
+  z.devices = newDevices;
+
+  // Rebuild seats if count changed
+  if(newSeats !== z.seats.length){
+    z.seats = mkS(newSeats, {f:newSeats, b:0, r:0});
+  }
+
+  // Sync ownerZones
+  ownerZones = JSON.parse(JSON.stringify(club.zones));
+  toggleZoneEdit(zi);
+  renderSettingsZones(club);
+  renderClubs();
+  renderOwnerZones();
+
+  // Save zone to Supabase
+  if(z.supabase_id){
+    sbFetch('zones?id=eq.' + z.supabase_id, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        name: z.name, type: z.type, room: z.room,
+        price: z.price, seat_count: z.seats.length,
+        devices: z.devices.join(', ')
+      }),
+      prefer: 'return=minimal'
+    }).catch(e => console.warn('Zone save error:', e));
+  } else if(club.supabase_id){
+    // New zone — create in Supabase
+    sbFetch('zones', {
+      method: 'POST',
+      body: JSON.stringify({
+        club_id: club.supabase_id, name: z.name, type: z.type,
+        room: z.room, price: z.price, seat_count: z.seats.length,
+        devices: z.devices.join(', ')
+      }),
+      prefer: 'return=representation'
+    }).then(rows => { if(rows && rows[0]) z.supabase_id = rows[0].id; })
+      .catch(e => console.warn('Zone create error:', e));
+  }
+
+  toast(`✅ Зал "${newName}" обновлён · ${newSeats} мест · ${newPrice} ₸/ч`);
+}
+
+function deleteZone(zi){
+  const club = CLUBS.find(c=>c.id===currentUser.clubId);
+  if(!club) return;
+  const z = club.zones[zi];
+  const zoneName = z.name;
+  if(z.supabase_id){
+    sbFetch('zones?id=eq.'+z.supabase_id,{method:'DELETE',prefer:'return=minimal'})
+    .catch(e=>console.warn('Zone delete error:',e));
+  }
+  club.zones.splice(zi, 1);
+  ownerZones = JSON.parse(JSON.stringify(club.zones));
+  renderSettingsZones(club);
+  renderOwnerZones();
+  renderClubs();
+  toast(`🗑 Зал "${zoneName}" удалён`);
+}
+
+function addSettingsZone(){
+  const club = CLUBS.find(c=>c.id===currentUser.clubId);
+  if(!club) return;
+  const newId = 'nz_' + Date.now();
+  club.zones.push({
+    id: newId, type:'standard',
+    name:'Новый зал', room:'Зал ' + (club.zones.length+1),
+    price:350, devices:['ПК','Монитор','Мышь','Клавиатура'],
+    seats: mkS(10,{f:10,b:0,r:0})
+  });
+  ownerZones = JSON.parse(JSON.stringify(club.zones));
+  renderSettingsZones(club);
+  renderOwnerZones();
+  renderClubs();
+  // Auto-open last zone editor
+  const lastIdx = club.zones.length - 1;
+  setTimeout(()=>toggleZoneEdit(lastIdx), 150);
+  toast('➕ Новый зал добавлен — заполни данные');
+}
+
+function saveSettings(){
+  const club = CLUBS.find(c=>c.id===currentUser.clubId);
+  if(!club) return;
+
+  const newName  = document.getElementById('st-name').value.trim();
+  const newAddr  = document.getElementById('st-addr').value.trim();
+  const newPhone = document.getElementById('st-phone').value.trim();
+  const newInsta = document.getElementById('st-insta').value.trim();
+  const newDesc  = document.getElementById('st-desc').value.trim();
+  const newHours = document.getElementById('st-hours').value.trim();
+  const newOpen  = document.getElementById('st-open').value === '1';
+  const newOwnerName = document.getElementById('st-owner-name').value.trim();
+  const newPass  = document.getElementById('st-pass').value;
+  const newPass2 = document.getElementById('st-pass2').value;
+
+  if(!newName){ toast('⚠️ Введи название клуба'); return; }
+  if(newPass && newPass !== newPass2){ toast('⚠️ Пароли не совпадают'); return; }
+  if(newPass && newPass.length < 6){ toast('⚠️ Пароль минимум 6 символов'); return; }
+
+  // Apply to club
+  club.name  = newName;
+  club.addr  = newAddr  || club.addr;
+  club.phone = newPhone || club.phone;
+  club.insta = newInsta;
+  club.desc  = newDesc;
+  club.hours = newHours || 'Круглосуточно';
+  club.open  = newOpen;
+
+  // Apply to currentUser
+  if(newOwnerName) currentUser.name = newOwnerName;
+  if(newPass) currentUser.pass = newPass;
+  saveSession(currentUser);
+
+  // Update panel header
+  document.getElementById('oph-name').textContent = currentUser.name;
+  document.getElementById('oph-club').textContent = club.name + ' · ' + club.addr;
+  document.getElementById('nav-username').textContent = currentUser.name;
+  document.getElementById('oph-avatar').textContent = currentUser.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+
+  // Re-render everywhere
+  renderClubs();
+  renderOwnerZones();
+
+  // Save to Supabase if club has supabase_id
+  if(club.supabase_id){
+    sbFetch('clubs?id=eq.' + club.supabase_id, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        name: club.name, address: club.addr, phone: club.phone,
+        hours: club.hours, is_open: club.open
+      }),
+      prefer: 'return=minimal'
+    }).then(()=> console.log('Club saved to Supabase'))
+      .catch(e => console.warn('Supabase save error:', e));
+  }
+
+  // Show saved message
+  const msg = document.getElementById('st-saved-msg');
+  msg.style.display = 'block';
+  setTimeout(()=>msg.style.display='none', 4000);
+}
+
+function previewSettings(){
+  goto('clubs');
+  setTimeout(()=>{
+    document.getElementById('clubs-s').scrollIntoView({behavior:'smooth'});
+  }, 300);
+}
+
+// Settings tab loads via button onclick directly
+
+// ── Add shake keyframes dynamically ──
+const shakeStyle = document.createElement('style');
+shakeStyle.textContent = '@keyframes shake{0%,100%{transform:none}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}';
+document.head.appendChild(shakeStyle);
+
+// Load session on startup
+loadSession(); // Uses localStorage — data persists between sessions
+
+</script>
+</body>
+</html>
